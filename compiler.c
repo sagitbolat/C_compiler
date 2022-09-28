@@ -6,8 +6,7 @@
 
 // SECTION: Function declarations
 int SplitStr(char*, char*, char**); 
-int TokenizeLine(char*, char**);
-int TokenizeFile(FILE*, char**);
+int TokenizeFile(char*, char**);
 
 int main(int argc, char* argv[]) {
     
@@ -24,61 +23,37 @@ int main(int argc, char* argv[]) {
     char* file_name = argv[1];
     FILE* source_file_stream = fopen(file_name, "r");
     
-    char* tokens[MAX_LINE_CHARS] = {0};
-    int tokens_found = TokenizeFile(source_file_stream, tokens);
+    char read_buffer[MAX_LINE_CHARS] = {0};
+    size_t chars_read = fread(read_buffer, 1, MAX_LINE_CHARS, source_file_stream);
+    char* token_array[MAX_LINE_CHARS] = {0}; 
+    int tokens_found = TokenizeFile(read_buffer, token_array); 
     
-    for(int i = 0; i < tokens_found; ++i) {
-        printf("%s\n", tokens[i]);
+    for (int i = 0; i < tokens_found; ++i) {
+        printf("%s\n", token_array[i]);
     }
+    printf("%d\n", tokens_found); // TODO: This outputs wrong number for some reason.
+    
+    fclose(source_file_stream); 
 
-
-
-    printf("%d\n", tokens_found);
+    //printf("%d\n", tokens_found);
 
     return 0;
 }
 
 
-int TokenizeFile(FILE* stream, char** final_tokens) {
-    
-    int final_tokens_found = 0;
-    
-    int EOF_found = 0;
-    
-    while (!EOF_found) {
-        char read_buffer[MAX_LINE_CHARS] = {0};
-        char* source_text_line = fgets(read_buffer, MAX_LINE_CHARS, stream);
-        
-        if (!source_text_line) {
-            EOF_found = 1;
-            continue;
-        } else {
-            // NOTE: lexer/tokenizer
-            char* token_array[MAX_LINE_CHARS] = {0}; 
-            int tokens_found = TokenizeLine(source_text_line, token_array); 
-            
-            for (int i = 0; i < tokens_found; ++i) {
-                final_tokens[final_tokens_found++] = token_array[i];
-            }
-
-        }
-    }
-    
-    return final_tokens_found;
-}
-
 // Splits line into tokens. Writes the tokens to the passed parameter char** tokens
 // Returns number of tokens.
-int TokenizeLine(char* line, char** final_tokens) {
+int TokenizeFile(char* file_text, char** final_tokens) {
     
     char* tokens[MAX_LINE_CHARS] = {0};
-    int tokens_found = SplitStr(line, " ", tokens); 
+    int tokens_found = SplitStr(file_text, " ", tokens); 
          
     
     int sub_tokens_found = 0;
     
     for (int i = 0; i < tokens_found; ++i) {
         char* token = tokens[i];
+        
         if (strstr(token, "(")) {
             char* sub_token_array[2]; 
             int num = SplitStr(token, "(", sub_token_array);
@@ -89,6 +64,8 @@ int TokenizeLine(char* line, char** final_tokens) {
             final_tokens[sub_tokens_found++] = sub_token_array[0];
             final_tokens[sub_tokens_found++] = "(";
             final_tokens[sub_tokens_found++] = sub_token_array[1];
+        } else if (strcmp(token, "\t")) {
+            final_tokens[sub_tokens_found] = "TAB"; 
         } else {
             final_tokens[sub_tokens_found++] = token;
         } 
